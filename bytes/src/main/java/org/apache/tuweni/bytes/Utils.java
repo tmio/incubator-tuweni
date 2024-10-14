@@ -26,4 +26,47 @@ class Checks {
       throw new IllegalArgumentException(String.format(message, args));
     }
   }
+
+  @FormatMethod
+  static void checkArgument(boolean condition, String message) {
+    if (!condition) {
+      throw new IllegalArgumentException(message);
+    }
+  }
+
+  @FormatMethod
+  static void checkArgument(boolean condition, String message, int arg1) {
+    if (!condition) {
+      throw new IllegalArgumentException(String.format(message, arg1));
+    }
+  }
+
+  @FormatMethod
+  static void checkArgument(boolean condition, String message, int arg1, int arg2) {
+    if (!condition) {
+      throw new IllegalArgumentException(String.format(message, arg1, arg2));
+    }
+  }
+
+  @FormatMethod
+  static void checkArgument(boolean condition, String message, int arg1, int arg2, int arg3) {
+    if (!condition) {
+      throw new IllegalArgumentException(String.format(message, arg1, arg2, arg3));
+    }
+  }
+
+  @FormatMethod
+  static void checkArgument(
+      boolean condition, String message, int arg1, int arg2, int arg3, int arg4) {
+    if (!condition) {
+      throw new IllegalArgumentException(String.format(message, arg1, arg2, arg3, arg4));
+    }
+  }
+
+  @FormatMethod
+  static void checkArgument(boolean condition, String message, long arg1) {
+    if (!condition) {
+      throw new IllegalArgumentException(String.format(message, arg1));
+    }
+  }
 }
