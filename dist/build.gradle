@@ -107,31 +107,13 @@ distributions {
         from "$project.buildDir/notice"
         include 'NOTICE'
       }
-      def libs = []
-      def sources = []
-      rootProject.subprojects.each { s ->
-        if (s.name != 'eth-reference-tests' && s.name != 'eth2-reference-tests' && s.name != 'dist') {
-          libs << s.signArchives.signatureFiles[0]
-          sources << s.signArchives.signatureFiles[1]
-          libs << s.jar.outputs
-          sources << s.sourcesJar.outputs
-        }
-      }
       into('lib') {
         from rootProject.jar
         from rootProject.signArchives.signatureFiles[0]
-        from libs.unique(false)
       }
 
       into('bin') {
-        from { project(':gossip').startScripts.outputs.files }
-        from { project(':hobbits-relayer').startScripts.outputs.files }
-        from { project(':eth-client-app').startScripts.outputs.files }
         from { project(':devp2p').startScripts.outputs.files }
-        from { project(':eth-faucet').startScripts.outputs.files }
-        from { project(':eth-crawler').startScripts.outputs.files }
-        from { project(':jsonrpc-app').startScripts.outputs.files }
-        from { project(':stratum-proxy').startScripts.outputs.files }
         fileMode = 0755
       }
     }

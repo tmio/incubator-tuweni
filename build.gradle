@@ -308,7 +308,7 @@ allprojects {
     }
   }
 
-  if (project.name != 'eth-reference-tests' && project.name != 'eth2-reference-tests' && project.name != 'dist') {
+  if (project.name != 'dist') {
 
     artifacts {
       archives sourcesJar

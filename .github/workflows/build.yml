@@ -144,7 +144,7 @@ jobs:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ github.sha }}
       - name: gradle integrationTest
-        run: gradle compileJava compileKotlin compileIntegrationTestJava compileIntegrationTestKotlin devp2p-eth:integrationTest devp2p-proxy:integrationTest devp2p:integrationTest dist:integrationTest dns-discovery:integrationTest eth-client-ui:integrationTest eth-client:integrationTest ethstats:integrationTest gossip:integrationTest hobbits-relayer:integrationTest hobbits:integrationTest plumtree-servlet:integrationTest plumtree-vertx:integrationTest rlpx:integrationTest
+        run: gradle compileJava compileKotlin compileIntegrationTestJava compileIntegrationTestKotlin devp2p:integrationTest dist:integrationTest
       - name: Archive Junit Report
         if: always()
         uses: actions/upload-artifact@v3
@@ -173,10 +173,6 @@ jobs:
         with:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ github.sha }}
-      - name: gradle evm:referenceTest
-        env:
-          GRADLE_OPTS: "-Xmx4096m"
-        run: gradle evm:referenceTest
       - name: Archive Junit Report
         if: always()
         uses: actions/upload-artifact@v3
