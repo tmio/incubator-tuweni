@@ -264,9 +264,9 @@ class EthereumNodeRecord(
    * The ENR public key entry bytes
    * @return the ENR public key bytes
    */
-  fun publicKeyBytes(): Bytes {
+  private fun publicKeyBytes(): Bytes {
     val keyBytes = data["secp256k1"] ?: throw InvalidNodeRecordException("Missing secp256k1 entry")
-    val ecPoint = SECP256K1.Parameters.CURVE.getCurve().decodePoint(keyBytes.toArrayUnsafe())
+    val ecPoint = SECP256K1.Parameters.CURVE.curve.decodePoint(keyBytes.toArrayUnsafe())
     return Bytes.wrap(ecPoint.getEncoded(false)).slice(1)
   }
 
@@ -274,7 +274,7 @@ class EthereumNodeRecord(
    * Derives the public key of an ethereum node record into a unique 32 bytes hash.
    * @return the hash of the public key
    */
-  fun nodeId() = EthereumNodeRecord.nodeId(publicKey())
+  fun nodeId() = nodeId(publicKey())
 
   /**
    * The ip associated with the ENR
@@ -319,9 +319,7 @@ class EthereumNodeRecord(
 
     other as EthereumNodeRecord
 
-    if (rlp != other.rlp) return false
-
-    return true
+    return rlp == other.rlp
   }
 
   override fun hashCode(): Int {

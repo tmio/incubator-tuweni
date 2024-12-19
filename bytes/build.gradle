@@ -17,7 +17,7 @@ dependencies {
   implementation 'org.connid:framework-internal'
   compileOnly 'com.google.code.findbugs:jsr305'
   compileOnly 'com.google.errorprone:error_prone_annotations'
-  compileOnly 'io.vertx:vertx-core'
+  api 'io.vertx:vertx-core'
 
   testImplementation 'io.vertx:vertx-core'
   testImplementation 'org.junit.jupiter:junit-jupiter-api'

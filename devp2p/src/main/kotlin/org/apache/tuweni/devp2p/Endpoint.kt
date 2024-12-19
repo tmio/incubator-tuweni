@@ -7,15 +7,7 @@ import org.apache.tuweni.rlp.RLPException
 import org.apache.tuweni.rlp.RLPReader
 import org.apache.tuweni.rlp.RLPWriter
 import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.net.UnknownHostException
-
-private fun parseInetAddress(address: String): InetAddress {
-  require(Character.digit(address[0], 16) != -1 || address[0] == ':') {
-    "address should be a literal IP address, got $address"
-  }
-  return InetAddress.getByName(address)
-}
 
 /**
  * An Ethereum node endpoint.
@@ -90,11 +82,6 @@ data class Endpoint(
    * UDP socket address of the endpoint
    */
   val udpSocketAddress: SocketAddress = SocketAddress.inetSocketAddress(udpPort, address)
-
-  /**
-   * TCP socket address of the endpoint, if set
-   */
-  val tcpSocketAddress: InetSocketAddress? = if (tcpPort != null) InetSocketAddress(address, tcpPort) else null
 
   /**
    * Write this endpoint to an RLP output.

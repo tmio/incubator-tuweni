@@ -17,9 +17,9 @@ class EthereumNodeRecordTest {
   @Test
   fun tooLong() {
     val tooLong = Bytes.random(312)
-    val exception: IllegalArgumentException = assertThrows({
+    val exception: IllegalArgumentException = assertThrows {
       EthereumNodeRecord.fromRLP(tooLong)
-    })
+    }
     assertEquals("Record too long", exception.message)
   }
 

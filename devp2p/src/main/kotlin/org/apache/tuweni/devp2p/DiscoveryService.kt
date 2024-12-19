@@ -8,7 +8,7 @@ import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.datagram.DatagramPacket
 import io.vertx.core.net.SocketAddress
-import io.vertx.kotlin.coroutines.await
+import io.vertx.kotlin.coroutines.coAwait
 import io.vertx.kotlin.coroutines.dispatcher
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -271,7 +271,7 @@ interface DiscoveryService {
   val unexpectedENRResponses: Long
 }
 
-internal class CoroutineDiscoveryService constructor(
+internal class CoroutineDiscoveryService(
   vertx: Vertx,
   private val keyPair: SECP256K1.KeyPair,
   private val seq: Long = Instant.now().toEpochMilli(),
@@ -334,8 +334,8 @@ internal class CoroutineDiscoveryService constructor(
     start()
   }
 
-  fun start() = launch {
-    server.handler { receiveDatagram(it) }.listen(bindAddress.port(), bindAddress.host()).await()
+  private fun start() = launch {
+    server.handler { receiveDatagram(it) }.listen(bindAddress.port(), bindAddress.host()).coAwait()
     val endpoint = Endpoint(
       advertiseAddress ?: (server.localAddress()).host(),
       advertiseUdpPort ?: server.localAddress().port(),
@@ -428,7 +428,7 @@ internal class CoroutineDiscoveryService constructor(
   override suspend fun shutdown() {
     if (shutdown.compareAndSet(false, true)) {
       logger.info("{}: shutdown", serviceDescriptor)
-      server.close().await()
+      server.close().coAwait()
       for (pending in awaitingPongs.values) {
         pending.complete(null)
       }
@@ -446,7 +446,7 @@ internal class CoroutineDiscoveryService constructor(
   override suspend fun lookup(target: SECP256K1.PublicKey): List<Peer> {
     val targetId = target.bytesArray()
     val results = neighbors(target).toMutableList()
-    logger.debug("Initial neighbors query $results")
+    logger.debug("Initial neighbors query {}", results)
 
     // maybe add ourselves to the set
     val selfPeer = peerRepository.get(selfEndpoint!!.address, selfEndpoint!!.udpPort, nodeId)
@@ -872,7 +872,7 @@ internal class CoroutineDiscoveryService constructor(
     private suspend fun send(request: FindNodeRequest) {
       try {
         val endpoint = peer.endpoint
-        var now = timeSupplier()
+        val now = timeSupplier()
         lastReceive = now
         val findNodePacket = FindNodePacket.create(keyPair, now, request.target)
         sendPacket(endpoint.udpSocketAddress, findNodePacket)
@@ -881,7 +881,7 @@ internal class CoroutineDiscoveryService constructor(
         // issue a "get" on the state cache, to indicate that this state is still in use
         val state = findNodeStates.getIfPresent(peer.nodeId)
         if (state != this) {
-          logger.warn("{}: findNode state for {} has been replaced")
+          logger.warn("{}: findNode state for {} has been replaced", serviceDescriptor, state)
           close()
         }
       } catch (e: TimeoutCancellationException) {
@@ -916,6 +916,6 @@ internal class CoroutineDiscoveryService constructor(
   }
 
   private suspend fun sendPacket(address: SocketAddress, packet: Packet) {
-    server.send(Buffer.buffer(packet.encode().toArrayUnsafe()), address.port(), address.host()).await()
+    server.send(Buffer.buffer(packet.encode().toArrayUnsafe()), address.port(), address.host()).coAwait()
   }
 }

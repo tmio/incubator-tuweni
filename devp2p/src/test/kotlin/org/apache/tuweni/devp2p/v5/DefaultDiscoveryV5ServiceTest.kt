@@ -4,7 +4,7 @@ package org.apache.tuweni.devp2p.v5
 
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
-import io.vertx.kotlin.coroutines.await
+import io.vertx.kotlin.coroutines.coAwait
 import kotlinx.coroutines.runBlocking
 import org.apache.tuweni.bytes.Bytes
 import org.apache.tuweni.concurrent.AsyncResult
@@ -20,9 +20,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.extension.ExtendWith
 import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.time.Instant
 
 @Timeout(10)
 @ExtendWith(BouncyCastleExtension::class, VertxExtension::class)
@@ -34,25 +32,14 @@ class DefaultDiscoveryV5ServiceTest {
   private val encodedEnr: String = "enr:${Base64URLSafe.encode(recipientEnr)}"
   private val keyPair: SECP256K1.KeyPair = SECP256K1.KeyPair.random()
   private val localPort: Int = 19000
-  private val bindAddress: InetSocketAddress = InetSocketAddress("localhost", localPort)
   private val bootstrapENRList: List<String> = listOf(encodedEnr)
-  private val enrSeq: Long = Instant.now().toEpochMilli()
-  private val selfENR: EthereumNodeRecord = EthereumNodeRecord.create(
-    keyPair,
-    enrSeq,
-    emptyMap(),
-    emptyMap(),
-    bindAddress.address,
-    null,
-    bindAddress.port,
-  )
 
   @Test
-  fun startInitializesConnectorAndBootstraps(@VertxInstance vertx: Vertx) = runBlocking {
+  fun startInitializesConnectorAndBootstraps(@VertxInstance vertx: Vertx): Unit = runBlocking {
     val reference = AsyncResult.incomplete<Buffer>()
     val client = vertx.createDatagramSocket().handler { res ->
       reference.complete(res.data())
-    }.listen(19001, "localhost").await()
+    }.listen(19001, "localhost").coAwait()
     val discoveryV5Service: DiscoveryV5Service =
       DiscoveryService.open(
         vertx,
@@ -64,7 +51,7 @@ class DefaultDiscoveryV5ServiceTest {
 
     val datagram = reference.await()
     val buffer = ByteBuffer.allocate(datagram.length())
-    datagram.byteBuf.readBytes(buffer)
+    buffer.put(datagram.bytes)
     buffer.flip()
     val receivedBytes = Bytes.wrapByteBuffer(buffer)
     val content = receivedBytes.slice(45)

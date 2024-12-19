@@ -134,11 +134,10 @@ internal class PingPacket private constructor(
           val from = reader.readList { r -> Endpoint.readFrom(r) }
           val to = reader.readList { r -> Endpoint.readFrom(r) }
           val expiration = reader.readLong() // seconds
-          val seq: Long?
-          if (!reader.isComplete) {
-            seq = reader.readLong()
+          val seq: Long? = if (!reader.isComplete) {
+            reader.readLong()
           } else {
-            seq = null
+            null
           }
 
           if (version < VERSION) {
@@ -208,11 +207,10 @@ internal class PongPacket private constructor(
           val to = reader.readList { r -> Endpoint.readFrom(r) }
           val pingHash = Bytes32.wrap(reader.readValue())
           val expiration = reader.readLong() // seconds
-          val seq: Long?
-          if (!reader.isComplete) {
-            seq = reader.readLong()
+          val seq: Long? = if (!reader.isComplete) {
+            reader.readLong()
           } else {
-            seq = null
+            null
           }
           PongPacket(publicKey, signature, hash, to, pingHash, secToMsec(expiration), seq)
         }
@@ -403,7 +401,7 @@ internal class ENRRequestPacket private constructor(
         PacketType.ENRRESPONSE,
         keyPair,
       ) { writer ->
-        ENRRequestPacket.encodeTo(writer, expiration)
+        encodeTo(writer, expiration)
       }
       return ENRRequestPacket(
         keyPair.publicKey(),
@@ -475,6 +473,6 @@ internal class ENRResponsePacket private constructor(
   }
 
   override fun encode() = encodeTo(PacketType.ENRRESPONSE) { writer ->
-    ENRResponsePacket.encodeTo(writer, requestHash, enr, expiration)
+    encodeTo(writer, requestHash, enr, expiration)
   }
 }

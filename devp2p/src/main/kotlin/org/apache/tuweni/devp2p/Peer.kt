@@ -84,7 +84,7 @@ interface Peer {
   /**
    * Update the peer's ENR.
    *
-   * Will only update if the [seq] is larger than the one associated with the peer.
+   * Will only update if the `seq` is larger than the one associated with the peer.
    *
    * @param record the ENR record associated with the peer
    * @param time the time this endpoint information was determined, in milliseconds since the epoch

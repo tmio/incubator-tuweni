@@ -16,6 +16,7 @@ import org.apache.tuweni.junit.VertxInstance;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Test;
@@ -66,11 +67,11 @@ class DiscoveryServiceJavaTest {
     AsyncResult<Peer> result =
         repository.getAsync(
             URI.create("enode://" + peerKeyPair.publicKey().toHexString() + "@127.0.0.1:10000"));
-    assertEquals(peerKeyPair.publicKey(), result.get().getNodeId());
+    assertEquals(peerKeyPair.publicKey(), Objects.requireNonNull(result.get()).getNodeId());
     AsyncResult<Peer> byURIString =
         repository.getAsync(
             "enode://" + peerKeyPair.publicKey().toHexString() + "@127.0.0.1:10000");
-    assertEquals(peerKeyPair.publicKey(), byURIString.get().getNodeId());
+    assertEquals(peerKeyPair.publicKey(), Objects.requireNonNull(byURIString.get()).getNodeId());
     service.shutdownAsync().join();
   }
 }

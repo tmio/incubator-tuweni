@@ -25,7 +25,9 @@ internal class SimpleTestENRStorage : ENRStorage {
 
   override fun find(nodeId: Bytes): EthereumNodeRecord? = storage[nodeId]
 
-  override fun put(nodeId: Bytes, enr: EthereumNodeRecord) { storage.put(nodeId, enr) }
+  override fun put(nodeId: Bytes, enr: EthereumNodeRecord) {
+    storage[nodeId] = enr
+  }
 }
 
 @ExtendWith(BouncyCastleExtension::class, VertxExtension::class)

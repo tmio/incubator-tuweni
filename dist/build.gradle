@@ -109,7 +109,6 @@ distributions {
       }
       into('lib') {
         from rootProject.jar
-        from rootProject.signArchives.signatureFiles[0]
       }
 
       into('bin') {
@@ -194,9 +193,17 @@ distTar { compression = Compression.GZIP }
 
 sourcesDistTar { compression = Compression.GZIP }
 
+artifacts {
+  archives distZip
+  archives distTar
+  archives sourcesDistZip
+  archives sourcesDistTar
+}
+
 if (System.getenv('ENABLE_SIGNING') == 'true') {
   signing {
     useGpgCmd()
+    sign configurations.archives
     sign distZip
     sign distTar
     sign sourcesDistZip
@@ -204,18 +211,18 @@ if (System.getenv('ENABLE_SIGNING') == 'true') {
   }
 }
 
-task createChecksums(type: Checksum, dependsOn: [
-  'distZip',
-  'distTar',
-  'sourcesDistZip',
-  'sourcesDistTar',
-]) {
+task createChecksums(type: Checksum) {
+  dependsOn tasks.withType(Sign), 'distZip', 'distTar', 'sourcesDistZip', 'sourcesDistTar'
+
   files = distZip.outputs.files + distTar.outputs.files + sourcesDistZip.outputs.files + sourcesDistTar.outputs.files
   outputDir = new File(project.buildDir, "distributions")
   algorithm = Checksum.Algorithm.SHA512
 }
 
 build.dependsOn('createChecksums')
+if (System.getenv('ENABLE_SIGNING') == 'true') {
+  build.dependsOn tasks.withType(Sign)
+}
 
 task buildBinImage(type: DockerBuildImage) {
   dependsOn distTar

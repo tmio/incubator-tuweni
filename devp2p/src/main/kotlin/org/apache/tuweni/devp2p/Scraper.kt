@@ -10,7 +10,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.apache.tuweni.concurrent.ExpiringSet
-import org.apache.tuweni.concurrent.coroutines.await
 import org.apache.tuweni.crypto.SECP256K1
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.net.URI
@@ -30,7 +29,7 @@ object ScraperApp {
     run(args)
   }
 
-  fun run(args: Array<String>) {
+  private fun run(args: Array<String>) {
     val uris = args.map { URI.create(it) }
     val addr = SocketAddress.inetSocketAddress(11000, "0.0.0.0")
     val scraper = Scraper(
@@ -66,7 +65,7 @@ class Scraper(
   val bindAddress: SocketAddress,
   val repository: PeerRepository,
   val listeners: List<(Peer) -> Unit>? = null,
-  val waitSecondsBetweenScrapes: Long = 30,
+  private val waitSecondsBetweenScrapes: Long = 30,
 ) : CoroutineScope {
 
   private var service: DiscoveryService? = null
@@ -99,7 +98,7 @@ class Scraper(
     }
   }
 
-  fun discover() = async {
+  private fun discover() = async {
     for (node in nodes) {
       service?.lookupAsync(node.nodeId)?.thenAccept {
         for (newNode in it) {

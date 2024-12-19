@@ -10,7 +10,10 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-import org.ajoberstar.grgit.Grgit
+import net.ltgt.gradle.errorprone.CheckSeverity
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import groovy.xml.XmlParser
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -19,20 +22,16 @@ buildscript {
   repositories {
     mavenCentral()
   }
-
-  dependencies {
-    classpath "org.ajoberstar.grgit:grgit-core:5.2.1"
-  }
 }
 
 plugins {
   id 'com.diffplug.spotless' version '6.22.0'
   id 'net.ltgt.errorprone' version '3.1.0'
-  id 'org.springframework.boot' version '3.2.4'
+  id 'org.springframework.boot' version '3.4.0'
   id 'io.spring.dependency-management' version '1.1.3'
   id 'org.gradle.crypto.checksum' version '1.4.0'
-  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
-  id 'org.jetbrains.kotlin.plugin.spring' version '1.9.23'
+  id 'org.jetbrains.kotlin.jvm' version '2.1.0'
+  id 'org.jetbrains.kotlin.plugin.spring' version '2.1.0'
   id 'org.jetbrains.dokka' version '1.9.20'
   id 'maven-publish'
   id 'se.patrikerdes.use-latest-versions' version '0.2.18'
@@ -74,10 +73,10 @@ def expandedTaskList = []
 gradle.startParameter.taskNames.each {
   expandedTaskList << (buildAliases[it] ? buildAliases[it] : it)
 }
-gradle.startParameter.taskNames = expandedTaskList.flatten()
+gradle.startParameter.taskNames = expandedTaskList.flatten() as Iterable<String>
 
 ext {
-  gradleVersion = '7.6'
+  gradleVersion = '8.8'
 }
 
 apply from: "${rootDir}/gradle/wrapper.gradle"
@@ -96,11 +95,10 @@ spotless {
   }
 }
 
-task integrationTest(type: Test) {
+tasks.register('integrationTest', Test) {
 }
 
 subprojects {
-
   //////
   // Source formatting
 
@@ -142,14 +140,14 @@ subprojects {
       integrationTestRuntimeOnly 'ch.qos.logback:logback-classic'
     }
 
-    task integrationTest(type: Test) {
+    tasks.register('integrationTest', Test) {
       description = 'Runs integration tests.'
       group = 'verification'
 
       testClassesDirs = sourceSets.integrationTest.output.classesDirs
       classpath = sourceSets.integrationTest.runtimeClasspath
 
-      useJUnitPlatform() { includeEngines 'spek', 'junit-jupiter' }
+      useJUnitPlatform() { 'junit-jupiter' }
       timeout = Duration.ofMinutes(30)
     }
 
@@ -159,24 +157,23 @@ subprojects {
   //////
   // Parallel build execution
 
-  tasks.withType(Test) {
+  tasks.withType(Test).configureEach {
     // If GRADLE_MAX_TEST_FORKS is not set, use half the available processors
     maxParallelForks = (System.getenv('GRADLE_MAX_TEST_FORKS') ?:
-      (Runtime.runtime.availableProcessors().intdiv(2) ?: 1)).toInteger()
+            (Runtime.runtime.availableProcessors().intdiv(2) ?: 1)).toInteger()
   }
 
-  tasks.withType(JavaCompile) {
+  tasks.withType(JavaCompile).configureEach {
     options.fork = true
     options.incremental = true
     options.encoding = 'UTF-8'
   }
 
-  task allDependencies(type: DependencyReportTask) {}
+  tasks.register('allDependencies', DependencyReportTask) {}
 }
 
 //////
 // Project defaults
-
 allprojects {
   apply plugin: 'java-library'
   apply plugin: 'kotlin'
@@ -200,51 +197,47 @@ allprojects {
 
   repositories {
     mavenCentral()
-    maven {
-      url = 'https://hyperledger.jfrog.io/artifactory/besu-maven/'
-    }
   }
-
 
   //////
   // Compiler arguments
 
-  sourceCompatibility = '1.17'
-  targetCompatibility = '1.17'
+  sourceCompatibility = JavaVersion.VERSION_21
+  targetCompatibility = JavaVersion.VERSION_21
 
   dependencies {
     errorprone 'com.google.errorprone:error_prone_core'
   }
 
-  tasks.withType(AbstractArchiveTask) {
+  tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
   }
 
-  tasks.withType(JavaCompile) {
+  tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += [
-      '-Xlint:unchecked',
-      '-Xlint:cast',
-      '-Xlint:rawtypes',
-      '-Xlint:overloads',
-      '-Xlint:divzero',
-      '-Xlint:finally',
-      '-Xlint:static',
-      '-Werror'
+            '-Xlint:unchecked',
+            '-Xlint:cast',
+            '-Xlint:rawtypes',
+            '-Xlint:overloads',
+            '-Xlint:divzero',
+            '-Xlint:finally',
+            '-Xlint:static',
+            '-Werror'
     ]
 
     options.errorprone {
       excludedPaths = '.*/generated-src/.*'
-      check('FutureReturnValueIgnored', net.ltgt.gradle.errorprone.CheckSeverity.OFF)
-      check('UnnecessaryParentheses', net.ltgt.gradle.errorprone.CheckSeverity.OFF)
+      check('FutureReturnValueIgnored', CheckSeverity.OFF)
+      check('UnnecessaryParentheses', CheckSeverity.OFF)
 
       disableWarningsInGeneratedCode = true
     }
   }
 
-  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-    kotlinOptions {
-      jvmTarget = "17"
+  tasks.withType(KotlinCompile).configureEach {
+    compilerOptions {
+      jvmTarget = JvmTarget.JVM_21
       allWarningsAsErrors = true
       freeCompilerArgs = [
         '-Xjsr305=strict',
@@ -258,16 +251,16 @@ allprojects {
   // Use JUnit5 for testing
 
   test {
-    useJUnitPlatform() { includeEngines 'spek', 'junit-jupiter' }
+    useJUnitPlatform() { 'junit-jupiter' }
     timeout = Duration.ofMinutes(30)
   }
 
   jacocoTestReport {
     reports {
-      xml.enabled true
-      html.enabled true
+      xml.required.set(true)
+      html.required.set(true)
     }
-    getExecutionData().setFrom(fileTree(buildDir).include("/jacoco/*.exec"))
+    getExecutionData().setFrom(fileTree(rootProject.layout.buildDirectory).include("/jacoco/*.exec"))
   }
 
 
@@ -275,19 +268,20 @@ allprojects {
   // Artifact locations
 
   jar {
-    destinationDirectory = file("${rootProject.buildDir}/libs")
+    destinationDirectory = rootProject.layout.buildDirectory.dir("libs")
   }
 
-  task sourcesJar(type: Jar, dependsOn: classes) {
-    destinationDirectory = file("${rootProject.buildDir}/src")
-    classifier = 'sources'
+  tasks.register('sourcesJar', Jar) {
+    dependsOn classes
+    destinationDirectory = rootProject.layout.buildDirectory.dir("src")
+    archiveClassifier.set('sources')
     from sourceSets.main.allSource
   }
 
   //////
   // Packaging and deployment
 
-  tasks.withType(Jar) {
+  tasks.withType(Jar).configureEach {
     def moduleName = rootProject.name
     if (rootProject == project) {
       archiveBaseName = project.name
@@ -297,8 +291,8 @@ allprojects {
     }
     manifest {
       attributes('Implementation-Title': archiveBaseName,
-      'Implementation-Version': project.version,
-      'Automatic-Module-Name': moduleName.replaceAll("-","_"))
+              'Implementation-Version': project.version,
+              'Automatic-Module-Name': moduleName.replaceAll("-", "_"))
     }
     from(rootProject.projectDir) {
       include 'DISCLAIMER'
@@ -310,17 +304,17 @@ allprojects {
 
   if (project.name != 'dist') {
 
-    artifacts {
+	artifacts {
       archives sourcesJar
       archives jar
     }
 
-    signing {
+	signing {
       useGpgCmd()
       sign configurations.archives
     }
 
-    publishing {
+	publishing {
       repositories {
         maven {
           name = "OSSRH"
@@ -336,7 +330,7 @@ allprojects {
             project.logger.info('Reading .m2/settings.xml')
             def serverId = (project.properties['distMgmtServerId'] ?: isRelease
               ? 'apache.releases.https' : 'apache.snapshots.https')
-            def m2SettingCreds = new XmlSlurper().parse(settingsXml).servers.server.find { server -> serverId.equals(server.id.text()) }
+            def m2SettingCreds = new XmlParser().parse(settingsXml).servers.server.find { server -> serverId == server.id.text() }
             if (m2SettingCreds) {
               project.logger.info('Found matching credentials from .m2/settings.xml')
               credentials {
@@ -366,24 +360,17 @@ allprojects {
           }
         }
       }
+
       publications {
-        MavenDeployment(MavenPublication) { publication ->
+        create("MavenDeployment", MavenPublication) {
           if (project != rootProject) {
             from components.java
-            artifact sourcesJar { classifier 'sources' }
+            artifact sourcesJar { archiveClassifier.set('sources') }
           }
-          groupId 'io.consensys.protocols'
-          artifactId 'tuweni-' + project.name
-          version project.version
-
-          versionMapping {
-            usage('java-runtime'){
-              fromResolutionResult()
-            }
-            usage('java-api'){
-              fromResolutionResult()
-            }
-          }
+          
+          groupId = 'io.consensys.protocols'
+          artifactId = project == rootProject ? project.name : "${rootProject.name}-${project.name}"
+          version = project.version
 
           pom {
             name = project.name
@@ -412,81 +399,65 @@ allprojects {
               system = "github"
               url = "https://www.github.com/consensys/tuweni/issues"
             }
-          }
-
-          pom.withXml {
-            // use inline versions rather than pom dependency management
-            asNode().remove(asNode().dependencyManagement[0])
-            if (asNode().dependencies[0]) {
-              asNode().remove(asNode().dependencies[0])
-            }
-
-            def dependenciesNode = asNode().appendNode('dependencies')
-            def addDependencyNode = { dep, optional, scope ->
-              def dependencyNode = dependenciesNode.appendNode('dependency')
-              if (dep instanceof ProjectDependency) {
-                dependencyNode.appendNode('groupId', 'io.consensys')
-                dependencyNode.appendNode('artifactId', rootProject.name + '-' + dep.name)
-                dependencyNode.appendNode('version', dep.version)
-              } else {
-                dependencyNode.appendNode('groupId', dep.group)
-                dependencyNode.appendNode('artifactId', dep.name)
-                if (dep.version != null) {
-                  dependencyNode.appendNode('version', dep.version)
-                } else {
-                  def version = dependencyManagement.managedVersions["$dep.group:$dep.name"]
-                  dependencyNode.appendNode('version', version)
+          
+            withXml {
+              def root = asNode()
+              
+              // Remove dependencyManagement section if it exists
+              root.dependencyManagement.each { it.parent().remove(it) }
+              
+              def dependencies = root.dependencies[0] ?: root.appendNode('dependencies')
+              dependencies.children().clear()
+              
+              // Add implementation dependencies with versions from dependency management
+              configurations.implementation.allDependencies.each { dep ->
+                if (dep.name != 'unspecified') {
+                  def node = dependencies.appendNode('dependency')
+                  node.appendNode('groupId', dep instanceof ProjectDependency ? "io.consensys.protocols" : dep.group)
+                  node.appendNode('artifactId', dep instanceof ProjectDependency ? "${rootProject.name}-${dep.name}" : dep.name)
+                  
+                  // Get version from dependency management if available
+                  def version = dep.version ?: project.dependencyManagement.managedVersions["${dep.group}:${dep.name}"]
+                  node.appendNode('version', version)
                 }
               }
-              if (optional) {
-                dependencyNode.appendNode('optional', 'true')
-              }
-              if (scope != null) {
-                dependencyNode.appendNode('scope', scope)
-              }
-
-              def ers = dep.excludeRules
-              if (!ers.empty) {
-                def exclusionsNode = dependencyNode.appendNode('exclusions')
-                ers.each { er ->
-                  def exclusionNode = exclusionsNode.appendNode('exclusion')
-                  exclusionNode.appendNode('groupId', er.group)
-                  exclusionNode.appendNode('artifactId', er.module)
+              
+              // Add compileOnly dependencies as optional without trying to resolve them
+              configurations.compileOnly.allDependencies.each { dep ->
+                if (dep.name != 'unspecified') {
+                  def node = dependencies.appendNode('dependency')
+                  node.appendNode('groupId', dep instanceof ProjectDependency ? "io.consensys.protocols" : dep.group)
+                  node.appendNode('artifactId', dep instanceof ProjectDependency ? "${rootProject.name}-${dep.name}" : dep.name)
+                  // Get version from dependency management if available
+                  def version = dep.version ?: project.dependencyManagement.managedVersions["${dep.group}:${dep.name}"]
+                  node.appendNode('version', version)
+                  node.appendNode('optional', 'true')
                 }
               }
-            }
-            configurations.implementation.allDependencies.each { dep ->
-              addDependencyNode(dep, false, null)
-            }
-            configurations.compileOnly.allDependencies.each { dep ->
-              addDependencyNode(dep, true, null)
-            }
-            configurations.runtimeOnly.allDependencies.each { dep ->
-              addDependencyNode(dep, false, 'runtime')
+
+              if (System.getenv('ENABLE_SIGNING') == 'true') {
+                def pomFile = file("${project.buildDir}/generated-pom.xml")
+                writeTo(pomFile)
+                def pomAscFile = signing.sign(pomFile).signatureFiles[0]
+                artifact(pomAscFile) {
+                  classifier = null
+                  extension = 'pom.asc'
+                }
+              }
             }
 
             if (System.getenv('ENABLE_SIGNING') == 'true') {
-              def pomFile = file("${project.buildDir}/generated-pom.xml")
-              writeTo(pomFile)
-              def pomAscFile = signing.sign(pomFile).signatureFiles[0]
-              artifact(pomAscFile) {
-                classifier = null
-                extension = 'pom.asc'
-              }
-            }
-          }
-
-          if (System.getenv('ENABLE_SIGNING') == 'true') {
-            // create the signed artifacts
-            tasks.signArchives.signatureFiles.each {
-              artifact(it) {
-                def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
-                if (matcher.find()) {
-                  classifier = matcher.group(1)
-                } else {
-                  classifier = null
+              // create the signed artifacts
+              tasks.signArchives.signatureFiles.each {
+                artifact(it) {
+                  def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
+                  if (matcher.find()) {
+                    classifier = matcher.group(1)
+                  } else {
+                    classifier = null
+                  }
+                  extension = 'jar.asc'
                 }
-                extension = 'jar.asc'
               }
             }
           }
@@ -494,25 +465,22 @@ allprojects {
       }
     }
 
-    tasks.withType(Sign) {
+    tasks.withType(Sign).configureEach {
       onlyIf {
         System.getenv('ENABLE_SIGNING') == 'true'
       }
     }
 
-    tasks.withType(GenerateModuleMetadata) {
+    tasks.withType(GenerateModuleMetadata).configureEach {
       enabled = false
     }
 
-    model {
-      tasks.generatePomFileForMavenDeploymentPublication {
-        destination = file("$buildDir/generated-pom.xml")
-      }
-      tasks.publishMavenDeploymentPublicationToMavenLocal { dependsOn project.tasks.signArchives }
+    // Ensure each project's publication task depends on its own POM generation
+    tasks.withType(PublishToMavenLocal).configureEach { publishTask ->
+      publishTask.dependsOn(tasks.withType(GenerateMavenPom))
     }
   }
 }
-
 
 //////
 // Configure root project as a virtual package that depends on all components
@@ -538,14 +506,14 @@ apply plugin: 'kotlin'
 apply plugin: 'org.jetbrains.dokka'
 
 tasks.dokkaHtmlMultiModule.configure {
-  outputDirectory.set(file("$rootProject.buildDir/docs"))
+  outputDirectory = rootProject.layout.buildDirectory.dir("docs")
 }
 
 tasks.register("docs") {
   dependsOn dokkaHtmlMultiModule
 }
 
-dokkaHtml {
+dokkaHtml.configure {
   moduleName = 'tuweni'
 
   dokkaSourceSets {
@@ -573,7 +541,7 @@ dokkaHtml {
   }
 }
 
-project.task("checkNotice") {
+tasks.register('checkNotice') {
   def lines = file("NOTICE").readLines()
   def expected = "Copyright 2023-${LocalDate.now().getYear()} The Machine Consultancy LLC"
   for (line in lines) {

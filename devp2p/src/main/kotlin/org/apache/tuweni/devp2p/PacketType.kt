@@ -91,7 +91,7 @@ internal enum class PacketType(
 
     init {
       // populate an array by packet type id for index-based lookup in `forType(Byte)`
-      PacketType.values().forEach { type -> INDEX[type.typeId.toInt()] = type }
+      entries.forEach { type -> INDEX[type.typeId.toInt()] = type }
     }
 
     fun forType(typeId: Byte): PacketType? {
@@ -100,7 +100,11 @@ internal enum class PacketType(
   }
 
   init {
-    require(typeId <= PacketType.MAX_VALUE) { "Packet typeId must be in range [0x00, 0x80)" }
+    checkTypeId()
+  }
+
+  private fun checkTypeId() {
+    require(typeId <= PacketType.MAX_VALUE) { "Packet typeId must be in range [0x00, 0x80]" }
   }
 
   abstract fun decode(

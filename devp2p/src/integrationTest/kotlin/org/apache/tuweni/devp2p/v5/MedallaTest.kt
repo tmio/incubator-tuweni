@@ -38,7 +38,7 @@ class MedallaTest {
     )
     service.start().join()
 
-    kotlinx.coroutines.delay(10000)
+    delay(10000)
     (1..8).forEach {
       service.requestNodes(it)
     }

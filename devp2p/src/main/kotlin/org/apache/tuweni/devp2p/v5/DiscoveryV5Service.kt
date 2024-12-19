@@ -6,7 +6,7 @@ import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.datagram.DatagramPacket
 import io.vertx.core.net.SocketAddress
-import io.vertx.kotlin.coroutines.await
+import io.vertx.kotlin.coroutines.coAwait
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -151,7 +151,7 @@ interface DiscoveryV5Service : CoroutineScope {
 }
 
 internal class DefaultDiscoveryV5Service(
-  private val vertx: Vertx,
+  vertx: Vertx,
   private val bindAddress: InetSocketAddress,
   private val bootstrapENRList: List<String>,
   private val enrStorage: ENRStorage,
@@ -176,14 +176,14 @@ internal class DefaultDiscoveryV5Service(
   private lateinit var receiveJob: Job
 
   override suspend fun start(): AsyncCompletion {
-    server.handler(this::receiveDatagram).listen(bindAddress.port, bindAddress.hostString).await()
+    server.handler(this::receiveDatagram).listen(bindAddress.port, bindAddress.hostString).coAwait()
     return bootstrap()
   }
 
   override suspend fun terminate() {
     if (started.compareAndSet(true, false)) {
       receiveJob.cancel()
-      server.close().await()
+      server.close().coAwait()
     }
   }
 
@@ -207,7 +207,7 @@ internal class DefaultDiscoveryV5Service(
 
   private fun send(addr: SocketAddress, message: Bytes) {
     launch {
-      server.send(Buffer.buffer(message.toArrayUnsafe()), addr.port(), addr.host()).await()
+      server.send(Buffer.buffer(message.toArrayUnsafe()), addr.port(), addr.host()).coAwait()
     }
   }
 
@@ -224,10 +224,10 @@ internal class DefaultDiscoveryV5Service(
   )
 
   private fun receiveDatagram(packet: DatagramPacket) {
-    var session = sessions.get(packet.sender())
-    val size = Math.min(Packet.MAX_SIZE, packet.data().length())
+    var session = sessions[packet.sender()]
+    val size = Packet.MAX_SIZE.coerceAtMost(packet.data().length())
     val buffer = ByteBuffer.allocate(size)
-    packet.data().byteBuf.readBytes(buffer)
+    buffer.put(packet.data().bytes)
     buffer.flip()
     val message = Bytes.wrapByteBuffer(buffer)
     if (message.slice(0, 32) == whoAreYouHeader && session != null) {
