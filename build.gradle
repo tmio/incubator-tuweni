@@ -36,7 +36,7 @@ plugins {
   id 'org.jetbrains.dokka' version '1.9.20'
   id 'maven-publish'
   id 'se.patrikerdes.use-latest-versions' version '0.2.18'
-  id 'com.github.ben-manes.versions' version '0.49.0'
+  id 'com.github.ben-manes.versions' version '0.52.0'
 }
 
 description = 'A set of libraries and other tools to aid development of blockchain and other decentralized software in Java and other JVM languages'
