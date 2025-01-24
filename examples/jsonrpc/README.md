@@ -22,7 +22,7 @@ This example showcases how to use the proxy with a public service.
 
 ## Requirements
 
-This example requires Docker, Docker Compose 1.25, Java 11 and Gradle > 6.
+This example requires Docker, Docker Compose 1.25, Java 21 and Gradle > 6.
 
 ## Steps
 
