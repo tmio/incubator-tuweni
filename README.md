@@ -1,6 +1,6 @@
 # Tuweni: Blockchain Libraries for Java (& Kotlin)
 
-[![Github build](https://github.com/tmio/tuweni/workflows/assemble/badge.svg)](https://github.com/tmio/tuweni/actions)
+[![Github build](https://github.com/tmio/tuweni/actions/workflows/build.yml/badge.svg)](https://github.com/tmio/tuweni/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/tmio/tuweni/blob/main/LICENSE)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.tmio/tuweni-tuweni/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/io.tmio/tuweni-tuweni)
 
